@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -49,7 +49,7 @@ interface UserProfile {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createServerClient()
   const queryClient = useQueryClient()
   
   const [searchQuery, setSearchQuery] = useState('')

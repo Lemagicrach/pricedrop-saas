@@ -1,0 +1,44 @@
+{
+  "name": "pricedrop-saas",
+  "version": "2.0.0",
+  "description": "PriceDrop SaaS - Professional price tracking platform",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "deploy": "vercel --prod",
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe",
+    "db:migrate": "node scripts/migrate-database.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.8.7",
+    "@supabase/supabase-js": "^2.58.0",
+    "@stripe/stripe-js": "^2.2.0",
+    "@tanstack/react-query": "^5.12.2",
+    "@vercel/analytics": "^1.1.1",
+    "axios": "^1.12.2",
+    "chart.js": "^4.4.1",
+    "framer-motion": "^10.16.16",
+    "lucide-react": "^0.303.0",
+    "next": "^14.0.4",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "recharts": "^2.10.3",
+    "stripe": "^14.10.0",
+    "tailwindcss": "^3.4.0",
+    "zod": "^3.22.4",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.2.45",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.0.4",
+    "postcss": "^8.4.32",
+    "typescript": "^5.3.3"
+  }
+}

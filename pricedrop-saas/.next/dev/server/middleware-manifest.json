@@ -1,0 +1,37 @@
+{
+  "version": 3,
+  "middleware": {
+    "/": {
+      "files": [
+        "server/edge/chunks/pricedrop-saas_256b05c9._.js",
+        "server/edge/chunks/10fe2_@opentelemetry_api_build_esm_c4c4a31d._.js",
+        "server/edge/chunks/10fe2_@supabase_storage-js_dist_module_16b93a6e._.js",
+        "server/edge/chunks/10fe2_@supabase_auth-js_dist_module_2025a294._.js",
+        "server/edge/chunks/10fe2_78776477._.js",
+        "server/edge/chunks/[root-of-the-server]__e09a3361._.js",
+        "server/edge/chunks/turbopack-pricedrop-saas_edge-wrapper_d4eeaa42.js"
+      ],
+      "name": "middleware",
+      "page": "/",
+      "matchers": [
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\\\.json)?[\\/#\\?]?$",
+          "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "z3HnDvZbZXfGisJmCV1Bl1iznZh7CgfUqbafLUOKHsQ=",
+        "__NEXT_PREVIEW_MODE_ID": "370644943804d0d2482cd6000cd4e7a6",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "19ef64b1a6a5f3fba875f2c1f7ac9084c6dae1081f7b0309d68e7de126604318",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "b178cc48f9dfe19804cdfa39f5213c9092b8c5dc6c775c80824a6c0bf633aaa6"
+      }
+    }
+  },
+  "sortedMiddleware": [
+    "/"
+  ],
+  "functions": {}
+}

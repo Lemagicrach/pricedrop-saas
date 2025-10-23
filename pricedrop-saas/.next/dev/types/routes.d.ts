@@ -6,14 +6,13 @@ type AppRouteHandlerRoutes = "/api/cron/check-prices" | "/api/products/track" | 
 type PageRoutes = never
 type LayoutRoutes = "/"
 type RedirectRoutes = never
-type RewriteRoutes = "/api/pricedrop/[[...path]]"
+type RewriteRoutes = never
 type Routes = AppRoutes | PageRoutes | LayoutRoutes | RedirectRoutes | RewriteRoutes | AppRouteHandlerRoutes
 
 
 interface ParamMap {
   "/": {}
   "/api/cron/check-prices": {}
-  "/api/pricedrop/[[...path]]": { "path"?: string[]; }
   "/api/products/track": {}
   "/api/webhooks/stripe": {}
   "/dashboard": {}

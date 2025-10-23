@@ -117,16 +117,19 @@ export function formatRelativeTime(date: Date | string): string {
 }
 
 /**
- * Format date
+ * Format date - FIXED VERSION
  */
 export function formatDate(date: Date | string, format: 'short' | 'long' | 'full' = 'short'): string {
   const d = typeof date === 'string' ? new Date(date) : date
 
-  const options: Intl.DateTimeFormatOptions = {
+  // Define options map with proper typing
+  const optionsMap: Record<'short' | 'long' | 'full', Intl.DateTimeFormatOptions> = {
     short: { month: 'short', day: 'numeric', year: 'numeric' },
     long: { month: 'long', day: 'numeric', year: 'numeric' },
     full: { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' },
-  }[format]
+  }
+
+  const options = optionsMap[format]
 
   return new Intl.DateTimeFormat('en-US', options).format(d)
 }

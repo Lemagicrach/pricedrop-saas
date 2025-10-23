@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { trackProductSchema } from '@/lib/validation'
+import { getPlanLimits } from '@/lib/stripe'
 
-const PRICEDROP_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://pricedrop-api.vercel.app'
-const PRICEDROP_API_KEY = process.env.PRICEDROP_API_KEY || 'demo-key-123'
+const PRICEDROP_API_URL = process.env.NEXT_PUBLIC_API_URL
+const PRICEDROP_API_KEY = process.env.PRICEDROP_API_KEY
+
+if (!PRICEDROP_API_KEY || PRICEDROP_API_KEY.length < 32) {
+  throw new Error('PRICEDROP_API_KEY must be at least 32 characters')
+}
 
 export async function POST(req: NextRequest) {
   const supabase = createRouteHandlerClient({ cookies })
@@ -15,42 +21,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Parse and validate request body
+    const body = await req.json()
+    const validatedData = trackProductSchema.parse(body)
+
     // Get user profile to check plan limits
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('plan, tracked_count')
       .eq('id', user.id)
       .single()
 
-    if (!profile) {
+    if (profileError || !profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
     // Check plan limits
-    const limits = {
-      free: 5,
-      pro: 999,
-      ultra: 999,
-      mega: 999
-    }
-
-    const currentCount = await supabase
+    const limits = getPlanLimits(profile.plan)
+    const { count } = await supabase
       .from('user_tracking')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
 
-    if ((currentCount.count || 0) >= limits[profile.plan as keyof typeof limits]) {
+    if ((count || 0) >= limits.products) {
       return NextResponse.json(
-        { error: 'Plan limit reached. Please upgrade to track more products.' },
+        { 
+          error: 'Plan limit reached', 
+          message: `Your ${profile.plan} plan allows ${limits.products} products. Please upgrade to track more.`,
+          upgrade_url: '/pricing'
+        },
         { status: 403 }
       )
     }
 
-    // Parse request body
-    const body = await req.json()
-    const { url, target_price, notify_on_drop } = body
-
-    // Call your PriceDrop API to track the product
+    // Call PriceDrop API
     const response = await fetch(`${PRICEDROP_API_URL}/api/v1/products/track`, {
       method: 'POST',
       headers: {
@@ -58,9 +62,9 @@ export async function POST(req: NextRequest) {
         'X-API-Key': PRICEDROP_API_KEY,
       },
       body: JSON.stringify({
-        url,
-        target_price,
-        notify_on_drop: notify_on_drop !== false,
+        url: validatedData.url,
+        target_price: validatedData.target_price,
+        notify_on_drop: validatedData.notify_on_drop,
         user_email: user.email
       })
     })
@@ -75,46 +79,30 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json()
 
-    // Store in your database
+    // Store in database
     if (data.success && data.data) {
       const productData = data.data.product || data.product
 
-      // Check if product exists
-      let { data: existingProduct } = await supabase
+      // Upsert product
+      const { data: product, error: productError } = await supabase
         .from('products')
-        .select('id')
-        .eq('url', url)
+        .upsert({
+          url: validatedData.url,
+          platform: productData.store || 'ebay',
+          name: productData.title || productData.name,
+          current_price: productData.current_price || productData.price,
+          original_price: productData.original_price || productData.price,
+          currency: productData.currency || 'USD',
+          image_url: productData.image_url || productData.image,
+          in_stock: productData.in_stock !== false,
+          last_checked: new Date().toISOString()
+        }, { onConflict: 'url' })
+        .select()
         .single()
 
-      let productId = existingProduct?.id
-
-      if (!productId) {
-        // Create product if doesn't exist
-        const { data: newProduct, error: productError } = await supabase
-          .from('products')
-          .insert({
-            url,
-            platform: productData.store || 'ebay',
-            name: productData.title || productData.name,
-            current_price: productData.current_price || productData.price,
-            original_price: productData.original_price || productData.price,
-            currency: productData.currency || 'USD',
-            image_url: productData.image_url || productData.image,
-            in_stock: productData.in_stock !== false,
-            last_checked: new Date().toISOString()
-          })
-          .select()
-          .single()
-
-        if (productError) {
-          console.error('Product creation error:', productError)
-          return NextResponse.json(
-            { error: 'Failed to save product' },
-            { status: 500 }
-          )
-        }
-
-        productId = newProduct.id
+      if (productError) {
+        console.error('Product upsert error:', productError)
+        return NextResponse.json({ error: 'Failed to save product' }, { status: 500 })
       }
 
       // Create user tracking entry
@@ -122,13 +110,12 @@ export async function POST(req: NextRequest) {
         .from('user_tracking')
         .insert({
           user_id: user.id,
-          product_id: productId,
-          target_price,
-          notify_on_any_drop: notify_on_drop !== false
+          product_id: product.id,
+          target_price: validatedData.target_price,
+          notify_on_any_drop: validatedData.notify_on_drop
         })
 
       if (trackingError) {
-        // Handle duplicate tracking
         if (trackingError.code === '23505') {
           return NextResponse.json(
             { error: 'You are already tracking this product' },
@@ -136,6 +123,7 @@ export async function POST(req: NextRequest) {
           )
         }
         console.error('Tracking error:', trackingError)
+        return NextResponse.json({ error: 'Failed to create tracking' }, { status: 500 })
       }
 
       // Update user's tracked count
@@ -152,7 +140,7 @@ export async function POST(req: NextRequest) {
         await supabase
           .from('price_history')
           .insert({
-            product_id: productId,
+            product_id: product.id,
             price: productData.current_price || productData.price,
             currency: productData.currency || 'USD',
             in_stock: productData.in_stock !== false,
@@ -161,9 +149,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json({ success: true, data })
   } catch (error: any) {
     console.error('Track product error:', error)
+    
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 }

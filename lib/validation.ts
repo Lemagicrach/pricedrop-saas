@@ -5,7 +5,9 @@ import { z } from 'zod'
  * Validates product tracking preferences
  */
 export const trackProductSchema = z.object({
-  notify_on_drop: z.boolean().default(true),
+  url: z.string().url().max(2048),
+  target_price: z.number().positive().optional(),
+  notify_on_drop: z.boolean().default(true)
 })
 
 /**
